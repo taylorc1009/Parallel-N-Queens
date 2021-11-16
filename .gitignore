@@ -51,3 +51,22 @@ install_manifest.txt
 compile_commands.json
 CTestTestfile.cmake
 _deps
+
+# CMake Build
+/build
+*.ilk
+*.pdb
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.sln
+*.suo
+*.cmake
+CMake Overview
+
+# Visual Studio 2019 files
+/.vs
+Browse.VC.db
+ProjectSettings.json
+VSWorkspaceState.json
+slnx.sqlite
