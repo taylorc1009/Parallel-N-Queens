@@ -85,8 +85,8 @@ void calculateSolutions(std::vector<int>& gameBoard, int N, std::vector<std::vec
                     i = -1;
                 }
             }
-            //else
-            if (i == N - 1) { //&& !rowWriteHistory.empty()) {
+            //else if (i == N - 1) {//&& !rowWriteHistory.empty()) {
+            if (i == N - 1) {//&& !rowWriteHistory.empty()) {
                 do {
                     if (!rowWriteHistory.empty()) {
                         std::pair<int, int> tempPair = rowWriteHistory.top();
