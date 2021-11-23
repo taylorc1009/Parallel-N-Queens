@@ -6,6 +6,7 @@
 #include <string>
 #include <chrono>
 #include <iomanip>
+#include <stack>
 
 /*
 *   The below N-Queens chessboard formulation is as follows:
@@ -49,21 +50,58 @@ bool boardIsValidSoFar(int lastPlacedRow, const std::vector<int>& gameBoard)
 // A recursive function to calculate solutions
 void calculateSolutions(std::vector<int>& gameBoard, int N, std::vector<std::vector<int>>& solutions)
 {
+    std::stack<std::pair<int, int>> rowWriteHistory = std::stack<std::pair<int, int>>();
     int writeToRow = 0;
 
-    // for each column
-    for (int i = 0; i < N; ++i)
-    {
-        // set queen at the current column, at the specified row (writeToRow variable)
-        gameBoard[writeToRow] = i;
-        // if the board is valid so far
-        if (boardIsValidSoFar(writeToRow, gameBoard))
+    //for (gameBoard[0] = 0; gameBoard[0] < N; gameBoard[0]++) //for each column
+    //{
+        for (int i = 0; i < N; i++)
         {
-            const auto nextWriteToRow = writeToRow + 1;
-            if (nextWriteToRow == N) // filled the chessboard, so save the solution
-                solutions.push_back(gameBoard);
+            gameBoard[writeToRow] = i;
+            
+            /*std::string text;
+            text.resize(N * (N + 1) + 1); // we know exactly how many characters we'll need: one for each place at the board, and N newlines (at the end of each row). And one more newline to differentiate from other solutions
+            text.back() = '\n'; // add extra line at the end
+            for (int k = 0; k < N; ++k) {
+                auto queenAtRow = gameBoard[k];
+                for (int j = 0; j < N; ++j)
+                    text[k * (N + 1) + j] = queenAtRow == j ? 'X' : '.';
+                text[k * (N + 1) + N] = '\n';
+            }
+            std::cout << text;// << "\n";
+            std::cout << "wTR " << writeToRow << ", j " << i << std::endl << std:: endl << std::endl;*/
+
+            if (boardIsValidSoFar(writeToRow, gameBoard))
+            {
+                //std::cout << "valid" << std::endl;
+                if (writeToRow == N - 1) {
+                    solutions.push_back(gameBoard);
+                    //std::cout << "stored" << std::endl;
+                }
+                else {
+                    rowWriteHistory.push(std::make_pair(writeToRow, i));
+                    //std::cout << "stacked: " << writeToRow << ", " << i << " (size: " << rowWriteHistory.size() << ')' << std::endl;
+                    writeToRow++;
+                    i = -1;
+                }
+            }
+            //else
+            if (i == N - 1) { //&& !rowWriteHistory.empty()) {
+                do {
+                    if (!rowWriteHistory.empty()) {
+                        std::pair<int, int> tempPair = rowWriteHistory.top();
+                        //std::cout << rowWriteHistory.size() << ": " << writeToRow << ", " << i << '\n';
+                        //std::cout << "rWH: " << rowWriteHistory.top().first << ", " << rowWriteHistory.top().second << std::endl;
+                        writeToRow = tempPair.first;
+                        i = tempPair.second;
+                        rowWriteHistory.pop();
+                    }
+                    else
+                        break;
+                } while (i == N - 1);
+            }
         }
-    }
+    //}
 }
 
 // Calculate all solutions given the size of the chessboard
