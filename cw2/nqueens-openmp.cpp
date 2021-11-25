@@ -51,32 +51,31 @@ bool boardIsValidSoFar(int lastPlacedRow, const std::vector<int>& gameBoard)
 
 void calculateSolutions(std::vector<int>& gameBoard, int N, std::vector<std::vector<int>>& solutions)
 {
-    std::stack<std::pair<int, int>> rowWriteHistory = std::stack<std::pair<int, int>>();
     int writeToRow = 0;
-
-    for (int i = 0; i < N; i++) {
-        gameBoard[writeToRow] = i;
-
-        if (boardIsValidSoFar(writeToRow, gameBoard)) {
-            if (writeToRow < N - 1) {
-                rowWriteHistory.push(std::make_pair(writeToRow, i));
+    for (;;) {
+        if (writeToRow < 0 || writeToRow >= N)
+            break;
+        if (gameBoard[writeToRow] == N - 1)
+            writeToRow--;
+        else {
+            gameBoard[writeToRow]++;
+            while (writeToRow < N - 1) {
                 writeToRow++;
-                i = -1; //set the iterator to minus one (instead of zero) so that the for loop doesn't skip zero 
+                gameBoard[writeToRow] = 0;
             }
-            else
-                solutions.push_back(gameBoard);
         }
 
-        while (i == N - 1) {
-            if (!rowWriteHistory.empty()) {
-                std::pair<int, int> tempPair = rowWriteHistory.top();
-                writeToRow = tempPair.first;
-                i = tempPair.second;
-                rowWriteHistory.pop();
-            }
-            else
-                break;
+        std::string text;
+        text.resize(N * (N + 1) + 1); // we know exactly how many characters we'll need: one for each place at the board, and N newlines (at the end of each row). And one more newline to differentiate from other solutions
+        text.back() = '\n'; // add extra line at the end
+        for (int i = 0; i < N; ++i)
+        {
+            auto queenAtRow = gameBoard[i];
+            for (int j = 0; j < N; ++j)
+                text[i * (N + 1) + j] = queenAtRow == j ? 'X' : '.';
+            text[i * (N + 1) + N] = '\n';
         }
+        std::cout << text << "\n";
     }
 }
 
