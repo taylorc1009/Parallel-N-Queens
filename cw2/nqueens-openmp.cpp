@@ -7,6 +7,8 @@
 #include <chrono>
 #include <iomanip>
 #include <stack>
+#include <thread>
+#include <omp.h>
 
 /*
 *   The below N-Queens chessboard formulation is as follows:
@@ -47,7 +49,6 @@ bool boardIsValidSoFar(int lastPlacedRow, const std::vector<int>& gameBoard)
     return true;
 }
 
-// A recursive function to calculate solutions
 void calculateSolutions(std::vector<int>& gameBoard, int N, std::vector<std::vector<int>>& solutions)
 {
     std::stack<std::pair<int, int>> rowWriteHistory = std::stack<std::pair<int, int>>();
@@ -66,17 +67,15 @@ void calculateSolutions(std::vector<int>& gameBoard, int N, std::vector<std::vec
                 solutions.push_back(gameBoard);
         }
 
-        if (i == N - 1) {
-            do {
-                if (!rowWriteHistory.empty()) {
-                    std::pair<int, int> tempPair = rowWriteHistory.top();
-                    writeToRow = tempPair.first;
-                    i = tempPair.second;
-                    rowWriteHistory.pop();
-                }
-                else
-                    break;
-            } while (i == N - 1);
+        while (i == N - 1) {
+            if (!rowWriteHistory.empty()) {
+                std::pair<int, int> tempPair = rowWriteHistory.top();
+                writeToRow = tempPair.first;
+                i = tempPair.second;
+                rowWriteHistory.pop();
+            }
+            else
+                break;
         }
     }
 }
