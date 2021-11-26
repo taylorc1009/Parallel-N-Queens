@@ -14,28 +14,10 @@
 bool boardIsValid(const std::vector<int> gameBoard)
 {
     const int N = gameBoard.size();
-
-    std::vector<int> gameBoardSorted = gameBoard;
-    std::sort(gameBoardSorted.begin(), gameBoardSorted.end());
-    if (std::adjacent_find(gameBoardSorted.begin(), gameBoardSorted.end()) != gameBoardSorted.end())// same column, fail!
-        return false;
-
-    for (int i = 0; i < N; i++) {
-        int j = 1;
-        while (j < N) {
-            if (i == j) {
-                j++;
-                continue;
-            }
-            if (i - j >= 0)
-                if (gameBoard[i - j] == gameBoard[i] + j || gameBoard[i - j] == gameBoard[i] - j)
-                    return false;
-            if (i + j < N)
-                if (gameBoard[i + j] == gameBoard[i] + j || gameBoard[i + j] == gameBoard[i] - j)
-                    return false;
-            j++;
-        }
-    }
+    for (int i = 0; i < N; i++)
+        for (int j = i + 1; j < N; j++)
+            if (gameBoard[i] - gameBoard[j] == i - j || gameBoard[i] - gameBoard[j] == j - i || gameBoard[i] == gameBoard[j])
+                return false;
     return true;
 }
 
