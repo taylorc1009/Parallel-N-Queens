@@ -23,20 +23,12 @@ bool boardIsValid(const std::vector<int> gameBoard)
 
 void calculateSolutions(std::vector<int>& gameBoard, int N, std::vector<std::vector<int>>& solutions)
 {
-    int writeToRow = 0;
-    for (;;) {
-        if (writeToRow < 0 || writeToRow >= N)
-            break;
-        if (gameBoard[writeToRow] == N - 1)
-            writeToRow--;
-        else {
-            gameBoard[writeToRow]++;
-            while (writeToRow < N - 1) {
-                writeToRow++;
-                gameBoard[writeToRow] = 0;
-            }
+    for (int i = 0; i < pow(N, N); i++) {
+        int column = i;
+        for (int j = 0; j < N; j++) {
+            gameBoard[j] = column % N;
+            column /= N;
         }
-
         if (boardIsValid(gameBoard))
             solutions.push_back(gameBoard);
     }
