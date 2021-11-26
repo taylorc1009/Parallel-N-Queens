@@ -11,9 +11,8 @@
 #include <omp.h>
 #include <algorithm>
 
-bool boardIsValid(const std::vector<int> gameBoard)
+bool boardIsValid(const int* gameBoard, const int N)
 {
-    const int N = gameBoard.size();
     for (int i = 0; i < N; i++)
         for (int j = i + 1; j < N; j++)
             if (gameBoard[i] - gameBoard[j] == i - j || gameBoard[i] - gameBoard[j] == j - i || gameBoard[i] == gameBoard[j])
@@ -21,16 +20,24 @@ bool boardIsValid(const std::vector<int> gameBoard)
     return true;
 }
 
-void calculateSolutions(std::vector<int>& gameBoard, int N, std::vector<std::vector<int>>& solutions)
+void calculateSolutions(int N, std::vector<std::vector<int>>& solutions)
 {
-    for (int i = 0; i < pow(N, N); i++) {
+    int O = pow(N, N);
+
+#pragma omp parallel for num_threads(std::thread::hardware_concurrency()) schedule(static, N)
+    for (int i = 0; i < O; i++) {
+        int* gameBoard = (int*)malloc(sizeof(int) * N); // use an array as the game board as OpenMP cannot handle vectors' memory
+
         int column = i;
         for (int j = 0; j < N; j++) {
             gameBoard[j] = column % N;
             column /= N;
         }
-        if (boardIsValid(gameBoard))
-            solutions.push_back(gameBoard);
+
+        if (boardIsValid(gameBoard, N))
+#pragma omp critical
+            solutions.push_back(std::vector<int>(gameBoard, gameBoard + sizeof gameBoard / sizeof gameBoard[0]));
+        free(gameBoard);
     }
 }
 
@@ -38,8 +45,7 @@ void calculateSolutions(std::vector<int>& gameBoard, int N, std::vector<std::vec
 void calculateAllSolutions(int N, bool print)
 {
     std::vector<std::vector<int>> solutions;
-    std::vector<int> gameBoard(N, 0);
-    calculateSolutions(gameBoard, N, solutions);
+    calculateSolutions(N, solutions);
     printf("N=%d, solutions=%d\n", N, int(solutions.size()));
 
     if (print)
