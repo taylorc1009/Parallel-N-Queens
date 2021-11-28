@@ -11,6 +11,7 @@
 #include <algorithm>
 
 bool boardIsValid(const int* gameBoard, const int N)
+//bool boardIsValid(const std::vector<int> gameBoard, const int N)
 {
     // this OpenMP parallelization only slows the application down, most likely because it has an additional "if(!valid)" check
     // the "if(!valid)" check exists as it's not possible to return from a Parallel For, so this skips future checks if an invalid scenario is encountered
@@ -46,13 +47,15 @@ void calculateSolutions(int N, std::vector<std::vector<int>>& solutions)
     /*int** solutions_array = nullptr;
     int num_solutions = 0;*/
 
-    auto start = std::chrono::system_clock::now();
+    auto start = omp_get_wtime();//std::chrono::system_clock::now();
 
-// use this commented out decorator when using the parallelized "boardIsValid" solution
+// use this commented out preprocessing argument when using the parallelized "boardIsValid" solution
 //#pragma omp parallel for num_threads(std::round(std::thread::hardware_concurrency() / 2)) schedule(static)
-#pragma omp parallel for num_threads(std::thread::hardware_concurrency()) schedule(static)
+
+#pragma omp parallel for num_threads(std::thread::hardware_concurrency()) schedule(dynamic) // dynamic scheduling is best as we don't know whether a permutation is going to be valid or not and, therefore, utilise the "boardIsValid" check during task time
     for (int i = 0; i < O; i++) {
         int* gameBoard = (int*)malloc(sizeof(int) * N); // OpenMP's performance improves drastically when using an array instead of a vector
+        //std::vector<int> gameBoard(N, 0);
 
         int column = i;
         for (int j = 0; j < N; j++) {
@@ -63,17 +66,23 @@ void calculateSolutions(int N, std::vector<std::vector<int>>& solutions)
         if (boardIsValid(gameBoard, N)) {
 #pragma omp critical
             solutions.push_back(std::vector<int>(gameBoard, gameBoard + sizeof gameBoard / sizeof gameBoard[0]));
-            /*num_solutions++;
+            //solutions.push_back(gameBoard);
+            
+            /* make sure to use the following three lines when using the dynamically allocated "int** solutions_array"
+            num_solutions++;
             solutions_array = (int**)realloc(solutions_array, sizeof(int*) * num_solutions);
             solutions_array[num_solutions - 1] = gameBoard;*/
         }
+        /* make sure to use this "free()" when using the dynamically allocated "int* gameBoard" */
+        free(gameBoard);
     }
 
-    auto stop = std::chrono::system_clock::now();
-    auto time_elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-    std::cout << "N=" << N << " time elapsed: " << time_elapsed.count() / 1000.0 << "s\n";
+    auto stop = omp_get_wtime();//std::chrono::system_clock::now();
+    auto time_elapsed = stop - start;//std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+    std::cout << "N=" << N << " time elapsed: " << time_elapsed << "s\n";//time_elapsed.count() / 1000.0 << "s\n";
 
-    /*for (int i = 0; i < num_solutions; i++) {
+    /* make sure to use the following four lines when using the dynamically allocated "int** solutions_array"
+    for (int i = 0; i < num_solutions; i++) {
         solutions.push_back(std::vector<int>(solutions_array[i], solutions_array[i] + sizeof solutions_array[i] / sizeof solutions_array[i][0]));
         free(solutions_array[i]);
     }
