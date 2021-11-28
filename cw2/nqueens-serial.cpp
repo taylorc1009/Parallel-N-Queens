@@ -6,6 +6,7 @@
 #include <string>
 #include <chrono>
 #include <iomanip>
+#include <stack>
 
 using namespace std; 
 
@@ -47,6 +48,38 @@ bool boardIsValidSoFar(int lastPlacedRow, const std::vector<int>& gameBoard)
     }
     return true;
 }
+
+// my first solution (non-recursive, with backtracing)
+// I had to discard this as it modifies the iterating variable ("i") which is something OpenMP doesn't like
+/*void calculateSolutions(std::vector<int>& gameBoard, int N, std::vector<std::vector<int>>& solutions) {
+    std::stack<std::pair<int, int>> rowWriteHistory = std::stack<std::pair<int, int>>();
+    int writeToRow = 0;
+
+    for (int i = 0; i < N; i++) {
+        gameBoard[writeToRow] = i;
+
+        if (boardIsValidSoFar(writeToRow, gameBoard)) {
+            if (writeToRow < N - 1) {
+                rowWriteHistory.push(std::make_pair(writeToRow, i));
+                writeToRow++;
+                i = -1; //set the iterator to minus one (instead of zero) so that the for loop doesn't skip zero 
+            }
+            else
+                solutions.push_back(gameBoard);
+        }
+
+        while (i == N - 1) {
+            if (!rowWriteHistory.empty()) {
+                std::pair<int, int> tempPair = rowWriteHistory.top();
+                writeToRow = tempPair.first;
+                i = tempPair.second;
+                rowWriteHistory.pop();
+            }
+            else
+                break;
+        }
+    }
+}*/
 
 // A recursive function to calculate solutions
 void calculateSolutionsRecursive(int writeToRow, std::vector<int>& gameBoard, int N, std::vector<std::vector<int>>& solutions)
