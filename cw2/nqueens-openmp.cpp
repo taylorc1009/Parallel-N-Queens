@@ -1,4 +1,3 @@
-// Headers
 #include <cassert>
 #include <iostream>
 #include <vector>
@@ -23,10 +22,14 @@ bool boardIsValid(const int* gameBoard, const int N)
 void calculateSolutions(int N, std::vector<std::vector<int>>& solutions)
 {
     int O = pow(N, N);
+    /*int** solutions_array = nullptr;
+    int num_solutions = 0;*/
+
+    auto start = std::chrono::system_clock::now();
 
 #pragma omp parallel for num_threads(std::thread::hardware_concurrency()) schedule(static, N)
     for (int i = 0; i < O; i++) {
-        int* gameBoard = (int*)malloc(sizeof(int) * N); // use an array as the game board as OpenMP cannot handle vectors' memory
+        int* gameBoard = (int*)malloc(sizeof(int) * N); // OpenMP's performance improves drastically when using arrays instead of vectors
 
         int column = i;
         for (int j = 0; j < N; j++) {
@@ -34,11 +37,24 @@ void calculateSolutions(int N, std::vector<std::vector<int>>& solutions)
             column /= N;
         }
 
-        if (boardIsValid(gameBoard, N))
+        if (boardIsValid(gameBoard, N)) {
 #pragma omp critical
             solutions.push_back(std::vector<int>(gameBoard, gameBoard + sizeof gameBoard / sizeof gameBoard[0]));
-        free(gameBoard);
+            /*num_solutions++;
+            solutions_array = (int**)realloc(solutions_array, sizeof(int*) * num_solutions);
+            solutions_array[num_solutions - 1] = gameBoard;*/
+        }
     }
+
+    auto stop = std::chrono::system_clock::now();
+    auto time_elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+    std::cout << "N=" << N << " time elapsed: " << time_elapsed.count() / 1000.0 << "s\n";
+
+    /*for (int i = 0; i < num_solutions; i++) {
+        solutions.push_back(std::vector<int>(solutions_array[i], solutions_array[i] + sizeof solutions_array[i] / sizeof solutions_array[i][0]));
+        free(solutions_array[i]);
+    }
+    free(solutions_array);*/
 }
 
 // Calculate all solutions given the size of the chessboard
@@ -46,7 +62,7 @@ void calculateAllSolutions(int N, bool print)
 {
     std::vector<std::vector<int>> solutions;
     calculateSolutions(N, solutions);
-    printf("N=%d, solutions=%d\n", N, int(solutions.size()));
+    printf("N=%d, solutions=%d\n\n", N, int(solutions.size()));
 
     if (print)
     {
