@@ -50,7 +50,6 @@ bool boardIsValidSoFar(int lastPlacedRow, const std::vector<int>& gameBoard)
 }
 
 // my first solution (non-recursive, with backtracing)
-// I had to discard this as it modifies the iterating variable ("i") which is something OpenMP doesn't like
 /*void calculateSolutions(std::vector<int>& gameBoard, int N, std::vector<std::vector<int>>& solutions) {
     std::stack<std::pair<int, int>> rowWriteHistory = std::stack<std::pair<int, int>>();
     int writeToRow = 0;
