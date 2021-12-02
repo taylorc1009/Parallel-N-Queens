@@ -23,15 +23,6 @@
 #define BLOCK_Y 14
 #define BLOCK_Z 2
 
-__device__ int getGlobalIdx_3D_3D() {
-    int blockId = blockIdx.x + blockIdx.y * gridDim.x
-        + gridDim.x * gridDim.y * blockIdx.z;
-    int threadId = blockId * (blockDim.x * blockDim.y * blockDim.z)
-        + (threadIdx.z * (blockDim.x * blockDim.y))
-        + (threadIdx.y * blockDim.x) + threadIdx.x;
-    return threadId;
-}
-
 __device__ bool boardIsValid(const int* gameBoard, const int N)
 {
     for (int i = 0; i < N; i++)
@@ -41,21 +32,7 @@ __device__ bool boardIsValid(const int* gameBoard, const int N)
     return true;
 }
 
-__host__ __device__ int* boardMalloc(const int* gameBoard, size_t size) {
-    int* dynamicBoard = nullptr;
-    unsigned int dynamicBoard_size = 0;
-    cudaMalloc((void**)&dynamicBoard, size);
-    for (int i = 0; i < N_MAX; i++) {
-        if (gameBoard[i] != -1) {
-            dynamicBoard[dynamicBoard_size] = gameBoard[i];
-            dynamicBoard_size++;
-            //printf("dB[%d]=%d", dynamicBoard_size, gameBoard[i]);
-        }
-    }
-    return dynamicBoard;
-}
-
-__global__ void getPermutations(const int N, const int O, int** d_permutations, int* d_num_solutions) {
+__global__ void getPermutations(const int N, const int O, int* d_permutations, int* d_num_solutions) {
     int column = threadIdx.x + blockIdx.x * blockDim.x;
     if (column >= O)
         return;
@@ -65,9 +42,9 @@ __global__ void getPermutations(const int N, const int O, int** d_permutations, 
     for (int i = 0; i < N_MAX; i++)
         gameBoard[i] = -1;
 
-    for (int j = 0; j < N; j++) {
+    for (int i = 0; i < N; i++) {
         //printf("%d %d %d %d\n", N, threadIdx.x + blockIdx.x * blockDim.x, column, column % N);
-        gameBoard[j] = column % N;
+        gameBoard[i] = column % N;
         column /= N;
     }
 
@@ -75,58 +52,60 @@ __global__ void getPermutations(const int N, const int O, int** d_permutations, 
 
     if (boardIsValid(gameBoard, N)) {
         int index = atomicAdd(d_num_solutions, 1);
-        d_permutations[index] = boardMalloc(gameBoard, sizeof(int) * N);
+        for (int i = 0; i < N; i++)
+            d_permutations[N * index + i] = gameBoard[i];
         //printf("%d\n", d_permutations[index][0]);
     }
 
     __syncthreads();
 }
 
-void calculateSolutions(const int N, int** h_solutions, int& h_num_solutions)
+void calculateSolutions(const int N, std::vector<std::vector<int>>* solutions, int* h_num_solutions)
 {
-    dim3 block(BLOCK_X, BLOCK_Y, BLOCK_Z);
-    dim3 grid(unsigned(N) / BLOCK_X, unsigned(N) / BLOCK_Y, unsigned(N) / BLOCK_Z);
-
-    h_num_solutions = 0;
-    int** d_solutions = nullptr;
+    *h_num_solutions = 0;
+    int* d_solutions = nullptr;
     int* d_num_solutions = nullptr;
 
     int O = pow(N, N);
 
-    cudaMalloc((void***)&d_solutions, O * sizeof(int*));
+    size_t solutions_mem = pow(N, 5) * sizeof(int*); // N^5 is an estimation of the amount of solutions for size N (^5 because N_MAX^4 (12^4) is enough to hold all the solutions for a 12x12 board and to store N columns for that board that would make it N^5)
+    cudaMalloc((void**)&d_solutions, solutions_mem);
     cudaMalloc((void**)&d_num_solutions, sizeof(int));
 
-    cudaMemcpy(d_num_solutions, &h_num_solutions, sizeof(int), cudaMemcpyHostToDevice);
-
-    printf("block=(%d, %d, %d) grid=(%d, %d, %d)\n", block.x, block.y, block.z, grid.x, grid.y, grid.z);
+    cudaMemcpy(d_num_solutions, h_num_solutions, sizeof(int), cudaMemcpyHostToDevice);
     
     getPermutations<<<(O + 512 - 1) / 512, 512>>>(N, O, d_solutions, d_num_solutions);
 
-    cudaMemcpy(&h_num_solutions, d_num_solutions, sizeof(int), cudaMemcpyDeviceToHost);
-    h_solutions = (int**)malloc(sizeof(int*) * h_num_solutions);
-    //for (int i = 0; i < h_num_solutions; i++) {
-        //if (d_solutions[i])
-            cudaMemcpy(h_solutions, d_solutions, O * sizeof(int*), cudaMemcpyDeviceToHost);
-        cudaFree(d_solutions);
-    //}
+    cudaMemcpy(h_num_solutions, d_num_solutions, sizeof(int), cudaMemcpyDeviceToHost);
     cudaFree(d_num_solutions);
-    //cudaFree(d_solutions);
+    
+    int* h_solutions = (int*)malloc(solutions_mem);
+    cudaMemcpy(h_solutions, d_solutions, solutions_mem, cudaMemcpyDeviceToHost);
+    cudaFree(d_solutions);
+    for (int i = 0; i < *h_num_solutions; i++) {
+        if (h_solutions[N * i] != NULL) {
+            std::vector<int> solution(N);
+            for (int j = 0; j < N; j++) {
+                solution.push_back(h_solutions[N * i + j]);
+            }
+            solutions->push_back(solution);
+        }
+    }
 
     cudaDeviceSynchronize();
 }
 
-// Calculate all solutions given the size of the chessboard
 void calculateAllSolutions(const int N, const bool print)
 {
-    int** solutions = nullptr;
+    std::vector<std::vector<int>> solutions = std::vector<std::vector<int>>();
     int num_solutions = 0;
     auto start = std::chrono::system_clock::now();
 
-    calculateSolutions(N, solutions, num_solutions);
+    calculateSolutions(N, &solutions, &num_solutions);
 
     auto stop = std::chrono::system_clock::now();
-    auto time_elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-    std::cout << "N=" << N << " time elapsed: " << time_elapsed.count() / 1000.0 << "s\n";
+    auto time_elapsed = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+    std::cout << "N=" << N << " time elapsed: " << time_elapsed.count() / 1000.0 << "ms\n";
 
     printf("N=%d, solutions=%d\n\n", N, num_solutions);
 
@@ -135,24 +114,17 @@ void calculateAllSolutions(const int N, const bool print)
         std::string text;
         text.resize(N * (N + 1) + 1); // we know exactly how many characters we'll need: one for each place at the board, and N newlines (at the end of each row). And one more newline to differentiate from other solutions
         text.back() = '\n'; // add extra line at the end
-        for (int i = 0; i < num_solutions; i++)
+        for (const auto& solution : solutions)
         {
-            for (int j = 0; j < N; j++)
+            for (int i = 0; i < N; ++i)
             {
-                auto queenAtRow = solutions[i][j];
+                auto queenAtRow = solution[i];
                 for (int j = 0; j < N; ++j)
                     text[i * (N + 1) + j] = queenAtRow == j ? 'X' : '.';
                 text[i * (N + 1) + N] = '\n';
             }
             std::cout << text << "\n";
         }
-    }
-
-    if (solutions != nullptr) {
-        for (int i = 0; i < pow(N, N); i++) {
-            free(solutions[i]);
-        }
-        free(solutions);
     }
 }
 
