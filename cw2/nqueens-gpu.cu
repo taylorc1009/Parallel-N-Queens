@@ -106,7 +106,7 @@ void calculateSolutions(const int N, int** h_solutions, int& h_num_solutions)
     h_solutions = (int**)malloc(sizeof(int*) * h_num_solutions);
     //for (int i = 0; i < h_num_solutions; i++) {
         //if (d_solutions[i])
-            cudaMemcpy(&h_solutions, &d_solutions, O * sizeof(int*), cudaMemcpyDeviceToHost);
+            cudaMemcpy(h_solutions, d_solutions, O * sizeof(int*), cudaMemcpyDeviceToHost);
         cudaFree(d_solutions);
     //}
     cudaFree(d_num_solutions);
@@ -148,8 +148,12 @@ void calculateAllSolutions(const int N, const bool print)
         }
     }
 
-    if (solutions != nullptr)
+    if (solutions != nullptr) {
+        for (int i = 0; i < pow(N, N); i++) {
+            free(solutions[i]);
+        }
         free(solutions);
+    }
 }
 
 
