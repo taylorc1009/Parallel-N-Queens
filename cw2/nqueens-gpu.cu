@@ -45,9 +45,13 @@ __host__ __device__ int* boardMalloc(const int* gameBoard, size_t size) {
     int* dynamicBoard = nullptr;
     unsigned int dynamicBoard_size = 0;
     cudaMalloc((void**)&dynamicBoard, size);
-    for (int i = 0; i < N_MAX; i++)
-        if (gameBoard[i] != -1)
-            dynamicBoard[dynamicBoard_size++] = gameBoard[i];
+    for (int i = 0; i < N_MAX; i++) {
+        if (gameBoard[i] != -1) {
+            dynamicBoard[dynamicBoard_size] = gameBoard[i];
+            dynamicBoard_size++;
+            //printf("dB[%d]=%d", dynamicBoard_size, gameBoard[i]);
+        }
+    }
     return dynamicBoard;
 }
 
@@ -72,7 +76,7 @@ __global__ void getPermutations(const int N, const int O, int** d_permutations, 
     if (boardIsValid(gameBoard, N)) {
         int index = atomicAdd(d_num_solutions, 1);
         d_permutations[index] = boardMalloc(gameBoard, sizeof(int) * N);
-        printf("%d\n", d_permutations[index][0]);
+        //printf("%d\n", d_permutations[index][0]);
     }
 
     __syncthreads();
@@ -100,13 +104,13 @@ void calculateSolutions(const int N, int** h_solutions, int& h_num_solutions)
 
     cudaMemcpy(&h_num_solutions, d_num_solutions, sizeof(int), cudaMemcpyDeviceToHost);
     h_solutions = (int**)malloc(sizeof(int*) * h_num_solutions);
-    for (int i = 0; i < h_num_solutions; i++) {
-        if (d_solutions[i])
-            cudaMemcpy(h_solutions[i], d_solutions[i], DATA_SIZE * sizeof(int*), cudaMemcpyDeviceToHost);
-        cudaFree(d_solutions[i]); //this probably should't be done? because it will delete every solution we have
-    }
+    //for (int i = 0; i < h_num_solutions; i++) {
+        //if (d_solutions[i])
+            cudaMemcpy(&h_solutions, &d_solutions, O * sizeof(int*), cudaMemcpyDeviceToHost);
+        cudaFree(d_solutions);
+    //}
     cudaFree(d_num_solutions);
-    cudaFree(d_solutions);
+    //cudaFree(d_solutions);
 
     cudaDeviceSynchronize();
 }
