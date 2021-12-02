@@ -15,13 +15,43 @@
 
 #define N_MAX 12
 
-#define GRID_X 1024
-#define GRID_Y 14
-#define GRID_Z 2
-#define DATA_SIZE (GRID_X * GRID_Y * GRID_Z)
-#define BLOCK_X 16
-#define BLOCK_Y 14
-#define BLOCK_Z 2
+// credit - https://stackoverflow.com/a/32531982/11136104
+#include "cuda_runtime_api.h"
+int getSPcores(cudaDeviceProp devProp)
+{
+    int cores = 0;
+    int mp = devProp.multiProcessorCount;
+    switch (devProp.major) {
+    case 2: // Fermi
+        if (devProp.minor == 1) cores = mp * 48;
+        else cores = mp * 32;
+        break;
+    case 3: // Kepler
+        cores = mp * 192;
+        break;
+    case 5: // Maxwell
+        cores = mp * 128;
+        break;
+    case 6: // Pascal
+        if ((devProp.minor == 1) || (devProp.minor == 2)) cores = mp * 128;
+        else if (devProp.minor == 0) cores = mp * 64;
+        else printf("Unknown device type\n");
+        break;
+    case 7: // Volta and Turing
+        if ((devProp.minor == 0) || (devProp.minor == 5)) cores = mp * 64;
+        else printf("Unknown device type\n");
+        break;
+    case 8: // Ampere
+        if (devProp.minor == 0) cores = mp * 64;
+        else if (devProp.minor == 6) cores = mp * 128;
+        else printf("Unknown device type\n");
+        break;
+    default:
+        printf("Unknown device type\n");
+        break;
+    }
+    return cores;
+}
 
 __device__ bool boardIsValid(const int* gameBoard, const int N)
 {
@@ -36,7 +66,6 @@ __global__ void getPermutations(const int N, const int O, int* d_permutations, i
     int column = threadIdx.x + blockIdx.x * blockDim.x;
     if (column >= O)
         return;
-    //printf("%d=%d, t=(%d, %d, %d) b=(%d, %d, %d) bd=(%d, %d, %d) gd(%d, %d, %d)\n", N, column, threadIdx.x, threadIdx.y, threadIdx.z, blockIdx.x, blockIdx.y, blockIdx.z, blockDim.x, blockDim.y, blockDim.z, gridDim.x, gridDim.y, gridDim.z);
 
     int gameBoard[N_MAX];
     for (int i = 0; i < N_MAX; i++)
@@ -105,7 +134,7 @@ void calculateAllSolutions(const int N, const bool print)
 
     auto stop = std::chrono::system_clock::now();
     auto time_elapsed = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-    std::cout << "N=" << N << " time elapsed: " << time_elapsed.count() / 1000.0 << "ms\n";
+    std::cout << "N=" << N << " time elapsed: " << time_elapsed.count() / 1000000.0 << "s\n";
 
     printf("N=%d, solutions=%d\n\n", N, num_solutions);
 
@@ -128,6 +157,18 @@ void calculateAllSolutions(const int N, const bool print)
     }
 }
 
+__device__ int getGlobalIdx_3D_3D() {
+    int blockId = blockIdx.x + blockIdx.y * gridDim.x
+        + gridDim.x * gridDim.y * blockIdx.z;
+    int threadId = blockId * (blockDim.x * blockDim.y * blockDim.z)
+        + (threadIdx.z * (blockDim.x * blockDim.y))
+        + (threadIdx.y * blockDim.x) + threadIdx.x;
+    return threadId;
+}
+
+__global__ void print_dims() {
+    printf("%d t=(%d, %d, %d) b=(%d, %d, %d) bd=(%d, %d, %d) gd(%d, %d, %d)\n", getGlobalIdx_3D_3D(), threadIdx.x, threadIdx.y, threadIdx.z, blockIdx.x, blockIdx.y, blockIdx.z, blockDim.x, blockDim.y, blockDim.z, gridDim.x, gridDim.y, gridDim.z);
+}
 
 int main(int argc, char** argv)
 {
@@ -135,4 +176,17 @@ int main(int argc, char** argv)
 
     for (int N = 4; N <= N_MAX; ++N)
         calculateAllSolutions(N, false);
+    
+    /* the following code is from an attempted 3D-3D GPU implementation, but I cannot find a way to calculate the total number of threads */
+    double n = std::ceil(pow(N_MAX, N_MAX) / 6);
+    //dim3 block = { n, n, n };
+    //dim3 grid = { n, n, n };
+    printf("%lf", n);
+
+    /*cudaDeviceProp props;
+    cudaGetDeviceProperties(&props, 0);
+    printf("%d", getSPcores(props));
+
+    print_dims<<<grid, block>>>();
+    cudaDeviceSynchronize();*/
 }
