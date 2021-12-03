@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
+#include <sstream>
 
 //#include "gpuErrchk.h"
 
@@ -62,7 +63,7 @@ __device__ bool boardIsValid(const int* gameBoard, const int N)
     return true;
 }
 
-__global__ void getPermutations(const int N, const int O, int* d_permutations, int* d_num_solutions) {
+__global__ void getPermutations(const int N, const int O, int* d_solutions, int* d_num_solutions) {
     int column = threadIdx.x + blockIdx.x * blockDim.x;
     if (column >= O)
         return;
@@ -82,7 +83,7 @@ __global__ void getPermutations(const int N, const int O, int* d_permutations, i
     if (boardIsValid(gameBoard, N)) {
         int index = atomicAdd(d_num_solutions, 1);
         for (int i = 0; i < N; i++)
-            d_permutations[N * index + i] = gameBoard[i];
+            d_solutions[N * index + i] = gameBoard[i] + 1; //"+1" so that we can tell later which indexes of "d_solutions" are empty using 0
         //printf("%d\n", d_permutations[index][0]);
     }
 
@@ -111,15 +112,16 @@ void calculateSolutions(const int N, std::vector<std::vector<int>>* solutions, i
     int* h_solutions = (int*)malloc(solutions_mem);
     cudaMemcpy(h_solutions, d_solutions, solutions_mem, cudaMemcpyDeviceToHost);
     cudaFree(d_solutions);
+
     for (int i = 0; i < *h_num_solutions; i++) {
         if (h_solutions[N * i] != NULL) {
-            std::vector<int> solution(N);
-            for (int j = 0; j < N; j++) {
-                solution.push_back(h_solutions[N * i + j]);
-            }
+            std::vector<int> solution = std::vector<int>();
+            for (int j = 0; j < N; j++)
+                solution.push_back(h_solutions[N * i + j] - 1); //"-1" to remove the addition made in the kernel to identify a solution is this array
             solutions->push_back(solution);
         }
     }
+    free(h_solutions);
 
     cudaDeviceSynchronize();
 }
@@ -175,13 +177,13 @@ int main(int argc, char** argv)
     //gpuErrchk(cudaSetDevice(0));
 
     for (int N = 4; N <= N_MAX; ++N)
-        calculateAllSolutions(N, false);
+        calculateAllSolutions(N, true);
     
     /* the following code is from an attempted 3D-3D GPU implementation, but I cannot find a way to calculate the total number of threads */
-    double n = std::ceil(pow(N_MAX, N_MAX) / 6);
+    //double n = std::ceil(pow(N_MAX, N_MAX) / 6);
     //dim3 block = { n, n, n };
     //dim3 grid = { n, n, n };
-    printf("%lf", n);
+    //printf("%lf", n);
 
     /*cudaDeviceProp props;
     cudaGetDeviceProperties(&props, 0);
