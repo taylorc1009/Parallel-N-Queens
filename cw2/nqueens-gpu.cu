@@ -105,6 +105,7 @@ void calculateSolutions(const int N, std::vector<std::vector<int>>* solutions, i
     cudaMemcpy(d_num_solutions, h_num_solutions, sizeof(int), cudaMemcpyHostToDevice);
     
     getPermutations<<<(O + 512 - 1) / 512, 512>>>(N, O, d_solutions, d_num_solutions);
+    cudaDeviceSynchronize();
 
     cudaMemcpy(h_num_solutions, d_num_solutions, sizeof(int), cudaMemcpyDeviceToHost);
     cudaFree(d_num_solutions);
@@ -121,9 +122,8 @@ void calculateSolutions(const int N, std::vector<std::vector<int>>* solutions, i
             solutions->push_back(solution);
         }
     }
-    free(h_solutions);
 
-    cudaDeviceSynchronize();
+    free(h_solutions);
 }
 
 void calculateAllSolutions(const int N, const bool print)
