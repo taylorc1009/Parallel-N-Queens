@@ -79,7 +79,7 @@ void initialiseDevice(const int N, std::vector<std::vector<int>>* solutions, int
     
     int id_offsets = 1; //initialise as 1 so that the kernel is executed at least once
     if (O > N_THREADS)
-        id_offsets = std::ceil(O / N_THREADS);
+        id_offsets = std::ceil((double)O / N_THREADS); //calculate the amount of thread ID offsets needed (round up to account for the remainder offset)
 
 
     dim3 block = { BLOCK_X, BLOCK_Y, BLOCK_Z };
