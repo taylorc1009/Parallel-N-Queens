@@ -10,7 +10,7 @@
 #include <omp.h>
 #include <algorithm>
 
-bool boardIsValid(const int* gameBoard, const int N)
+inline bool boardIsValid(const int* gameBoard, const int N)
 /* use this function definition when using the vector format of the "gameBoard" in "calculateSolutions()"
 bool boardIsValid(const std::vector<int> gameBoard, const int N)*/
 {
@@ -51,8 +51,6 @@ void calculateSolutions(int N, std::vector<std::vector<int>>& solutions)
     int** solutions_array = nullptr;
     int num_solutions = 0;*/
 
-    auto start = omp_get_wtime();//std::chrono::system_clock::now();
-
 /* use this commented out preprocessing argument when using the parallelized "boardIsValid" solution
 #pragma omp parallel for num_threads(std::round(std::thread::hardware_concurrency() / 2)) schedule(static) */
 #pragma omp parallel for num_threads(std::thread::hardware_concurrency()) schedule(dynamic) // dynamic scheduling is best as we don't know whether a permutation is going to be valid or not and, therefore, utilise the "boardIsValid" check during task time
@@ -80,10 +78,6 @@ void calculateSolutions(int N, std::vector<std::vector<int>>& solutions)
         free(gameBoard);
     }
 
-    auto stop = omp_get_wtime();//std::chrono::system_clock::now();
-    auto time_elapsed = stop - start;//std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-    std::cout << "N=" << N << " time elapsed: " << time_elapsed << "s\n";//time_elapsed.count() / 1000.0 << "s\n";
-
     /* make sure to use the following four lines when using the dynamically allocated "int** solutions_array"
     for (int i = 0; i < num_solutions; i++) {
         solutions.push_back(std::vector<int>(solutions_array[i], solutions_array[i] + sizeof solutions_array[i] / sizeof solutions_array[i][0]));
@@ -96,7 +90,13 @@ void calculateSolutions(int N, std::vector<std::vector<int>>& solutions)
 void calculateAllSolutions(int N, bool print)
 {
     std::vector<std::vector<int>> solutions;
+
+    auto start = omp_get_wtime();
     calculateSolutions(N, solutions);
+    auto stop = omp_get_wtime();
+
+    auto time_elapsed = stop - start;
+    std::cout << "N=" << N << " time elapsed: " << time_elapsed << "s\n";
     printf("N=%d, solutions=%d\n\n", N, int(solutions.size()));
 
     if (print)
