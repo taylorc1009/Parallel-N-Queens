@@ -81,10 +81,11 @@ void initialiseDevice(const int N, std::vector<std::vector<int>>* solutions, int
     if (O > N_THREADS)
         id_offsets = std::ceil(O / N_THREADS);
 
+
     dim3 block = { BLOCK_X, BLOCK_Y, BLOCK_Z };
     dim3 grid = { GRID_X / BLOCK_X, GRID_Y / BLOCK_Y, GRID_Z / BLOCK_Z };
     for (long long int i = 0; i < id_offsets; i++) {
-        permutationGenAndEval<<<grid, block>>>(N, O, (long long int)(N_THREADS * i), d_solutions, d_num_solutions);
+        permutationGenAndEval<<<grid, block>>>(N, O, N_THREADS * i, d_solutions, d_num_solutions);
         cudaDeviceSynchronize();
     }
 
