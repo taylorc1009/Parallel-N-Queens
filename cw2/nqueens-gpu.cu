@@ -63,7 +63,7 @@ __global__ void permutationGenAndEval(const int N, const long long int O, const 
     __syncthreads();
 }
 
-void calculateSolutions(const int N, std::vector<std::vector<int>>* solutions, int* h_num_solutions)
+void initialiseDevice(const int N, std::vector<std::vector<int>>* solutions, int* h_num_solutions)
 {
     *h_num_solutions = 0;
     int* d_solutions = nullptr;
@@ -114,7 +114,7 @@ void calculateAllSolutions(const int N, const bool print)
     int num_solutions = 0;
     auto start = std::chrono::system_clock::now();
 
-    calculateSolutions(N, &solutions, &num_solutions);
+    initialiseDevice(N, &solutions, &num_solutions);
 
     auto stop = std::chrono::system_clock::now();
     auto time_elapsed = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
