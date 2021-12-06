@@ -35,12 +35,21 @@ __device__ inline int getGlobalIdx_3D_3D() {
     return threadId;
 }
 
-__device__ inline bool boardIsValid(const int* gameBoard, const int N)
+__device__ inline bool boardIsValidSoFar(int lastPlacedRow, const int* gameBoard, const int N)
 {
-    for (int i = 0; i < N; i++)
-        for (int j = i + 1; j < N; j++)
-            if (gameBoard[i] - gameBoard[j] == i - j || gameBoard[i] - gameBoard[j] == j - i || gameBoard[i] == gameBoard[j])
-                return false;
+    int lastPlacedColumn = gameBoard[lastPlacedRow];
+
+    // Check against other queens
+    for (int row = 0; row < lastPlacedRow; ++row)
+    {
+        if (gameBoard[row] == lastPlacedColumn) // same column, fail!
+            return false;
+        // check the 2 diagonals
+        const auto col1 = lastPlacedColumn - (lastPlacedRow - row);
+        const auto col2 = lastPlacedColumn + (lastPlacedRow - row);
+        if (gameBoard[row] == col1 || gameBoard[row] == col2)
+            return false;
+    }
     return true;
 }
 
@@ -49,13 +58,20 @@ __global__ void permutationGenAndEval(const int N, const long long int O, const 
     if (column >= O)
         return;
 
+    bool valid = true;
     int gameBoard[N_MAX];
     for (int i = 0; i < N; i++) {
         gameBoard[i] = column % N;
+
+        if (!boardIsValidSoFar(i, gameBoard, N)) {
+            valid = false;
+            break;
+        }
+
         column /= N;
     }
 
-    if (boardIsValid(gameBoard, N)) {
+    if (valid) {
         const int index = atomicAdd(d_num_solutions, 1);
         for (int i = 0; i < N; i++)
             d_solutions[N * index + i] = gameBoard[i] + 1; //"+1" so that we can tell later which indexes of "d_solutions" are empty using 0
