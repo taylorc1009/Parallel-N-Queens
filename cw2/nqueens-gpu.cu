@@ -13,7 +13,7 @@
 #include <sstream>
 #include <cmath>
 
-//#include "gpuErrchk.h"
+#include "gpuErrchk.h"
 
 #define N_MAX 12
 
@@ -143,7 +143,7 @@ void calculateAllSolutions(const int N, const bool print)
 
 int main(int argc, char** argv)
 {
-    //gpuErrchk(cudaSetDevice(0));
+    gpuErrchk(cudaSetDevice(0));
 
     for (int N = 4; N <= N_MAX; ++N)
         calculateAllSolutions(N, false);
