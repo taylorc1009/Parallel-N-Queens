@@ -43,7 +43,7 @@ __device__ inline bool boardIsValid(const int* gameBoard, const int N)
     return true;
 }
 
-__global__ void getPermutations(const int N, const long long int O, const long long int offset, int* d_solutions, int* d_num_solutions) {
+__global__ void permutationGenAndEval(const int N, const long long int O, const long long int offset, int* d_solutions, int* d_num_solutions) {
     long long column = (long long int)getGlobalIdx_3D_3D() + offset;
     if (column >= O)
         return;
@@ -84,7 +84,7 @@ void calculateSolutions(const int N, std::vector<std::vector<int>>* solutions, i
     dim3 block = { BLOCK_X, BLOCK_Y, BLOCK_Z };
     dim3 grid = { GRID_X / BLOCK_X, GRID_Y / BLOCK_Y, GRID_Z / BLOCK_Z };
     for (long long int i = 0; i < id_offsets; i++) {
-        getPermutations<<<grid, block>>>(N, O, (long long int)(N_THREADS * i), d_solutions, d_num_solutions);
+        permutationGenAndEval<<<grid, block>>>(N, O, (long long int)(N_THREADS * i), d_solutions, d_num_solutions);
         //if (N >= 10) printf("%d, %d, %lld\n", offsets, i, (long long int)(N_THREADS * i));
         cudaDeviceSynchronize();
     }
