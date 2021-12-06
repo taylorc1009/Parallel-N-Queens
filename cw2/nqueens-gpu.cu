@@ -25,7 +25,7 @@
 #define BLOCK_Z 2
 #define N_THREADS (const long long int)(GRID_X * GRID_Y * GRID_Z)
 
-__device__ int getGlobalIdx_3D_3D() {
+__device__ inline int getGlobalIdx_3D_3D() {
     int blockId = blockIdx.x + blockIdx.y * gridDim.x
         + gridDim.x * gridDim.y * blockIdx.z;
     int threadId = blockId * (blockDim.x * blockDim.y * blockDim.z)
@@ -34,7 +34,7 @@ __device__ int getGlobalIdx_3D_3D() {
     return threadId;
 }
 
-__device__ bool boardIsValid(const int* gameBoard, const int N)
+__device__ inline bool boardIsValid(const int* gameBoard, const int N)
 {
     for (int i = 0; i < N; i++)
         for (int j = i + 1; j < N; j++)
@@ -77,13 +77,13 @@ void calculateSolutions(const int N, std::vector<std::vector<int>>* solutions, i
 
     cudaMemcpy(d_num_solutions, h_num_solutions, sizeof(int), cudaMemcpyHostToDevice);
     
-    int offsets = 1; //initialise as 1 so that the kernel is executed at least once
+    int id_offsets = 1; //initialise as 1 so that the kernel is executed at least once
     if (O > N_THREADS)
-        offsets = std::ceil(O / N_THREADS);
+        id_offsets = std::ceil(O / N_THREADS);
 
     dim3 block = { BLOCK_X, BLOCK_Y, BLOCK_Z };
     dim3 grid = { GRID_X / BLOCK_X, GRID_Y / BLOCK_Y, GRID_Z / BLOCK_Z };
-    for (long long int i = 0; i < offsets; i++) {
+    for (long long int i = 0; i < id_offsets; i++) {
         getPermutations<<<grid, block>>>(N, O, (long long int)(N_THREADS * i), d_solutions, d_num_solutions);
         //if (N >= 10) printf("%d, %d, %lld\n", offsets, i, (long long int)(N_THREADS * i));
         cudaDeviceSynchronize();
