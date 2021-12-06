@@ -23,7 +23,7 @@
 #define BLOCK_X 16
 #define BLOCK_Y 14
 #define BLOCK_Z 2
-#define N_THREADS (long long int)(GRID_X * GRID_Y * GRID_Z)
+#define N_THREADS (const long long int)(GRID_X * GRID_Y * GRID_Z)
 
 __device__ int getGlobalIdx_3D_3D() {
     int blockId = blockIdx.x + blockIdx.y * gridDim.x
@@ -47,8 +47,6 @@ __global__ void getPermutations(const int N, const long long int O, const long l
     long long column = (long long int)getGlobalIdx_3D_3D() + offset;
     if (column >= O)
         return;
-    //if (N >= 10)
-        //printf("%lld, %lld\n", column, offset);
 
     int gameBoard[N_MAX];
     for (int i = 0; i < N; i++) {
