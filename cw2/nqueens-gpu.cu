@@ -11,47 +11,27 @@
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
 #include <sstream>
+#include <cmath>
 
 //#include "gpuErrchk.h"
 
 #define N_MAX 12
 
-// credit - https://stackoverflow.com/a/32531982/11136104
-#include "cuda_runtime_api.h"
-int getSPcores(cudaDeviceProp devProp)
-{
-    int cores = 0;
-    int mp = devProp.multiProcessorCount;
-    switch (devProp.major) {
-    case 2: // Fermi
-        if (devProp.minor == 1) cores = mp * 48;
-        else cores = mp * 32;
-        break;
-    case 3: // Kepler
-        cores = mp * 192;
-        break;
-    case 5: // Maxwell
-        cores = mp * 128;
-        break;
-    case 6: // Pascal
-        if ((devProp.minor == 1) || (devProp.minor == 2)) cores = mp * 128;
-        else if (devProp.minor == 0) cores = mp * 64;
-        else printf("Unknown device type\n");
-        break;
-    case 7: // Volta and Turing
-        if ((devProp.minor == 0) || (devProp.minor == 5)) cores = mp * 64;
-        else printf("Unknown device type\n");
-        break;
-    case 8: // Ampere
-        if (devProp.minor == 0) cores = mp * 64;
-        else if (devProp.minor == 6) cores = mp * 128;
-        else printf("Unknown device type\n");
-        break;
-    default:
-        printf("Unknown device type\n");
-        break;
-    }
-    return cores;
+#define GRID_X 1024
+#define GRID_Y 14
+#define GRID_Z 2
+#define BLOCK_X 16
+#define BLOCK_Y 14
+#define BLOCK_Z 2
+#define N_THREADS (long long int)(GRID_X * GRID_Y * GRID_Z)
+
+__device__ int getGlobalIdx_3D_3D() {
+    int blockId = blockIdx.x + blockIdx.y * gridDim.x
+        + gridDim.x * gridDim.y * blockIdx.z;
+    int threadId = blockId * (blockDim.x * blockDim.y * blockDim.z)
+        + (threadIdx.z * (blockDim.x * blockDim.y))
+        + (threadIdx.y * blockDim.x) + threadIdx.x;
+    return threadId;
 }
 
 __device__ bool boardIsValid(const int* gameBoard, const int N)
@@ -63,28 +43,23 @@ __device__ bool boardIsValid(const int* gameBoard, const int N)
     return true;
 }
 
-__global__ void getPermutations(const int N, const int O, int* d_solutions, int* d_num_solutions) {
-    int column = threadIdx.x + blockIdx.x * blockDim.x;
+__global__ void getPermutations(const int N, const long long int O, const long long int offset, int* d_solutions, int* d_num_solutions) {
+    long long column = (long long int)getGlobalIdx_3D_3D() + offset;
     if (column >= O)
         return;
+    //if (N >= 10)
+        //printf("%lld, %lld\n", column, offset);
 
     int gameBoard[N_MAX];
-    for (int i = 0; i < N_MAX; i++)
-        gameBoard[i] = -1;
-
     for (int i = 0; i < N; i++) {
-        //printf("%d %d %d %d\n", N, threadIdx.x + blockIdx.x * blockDim.x, column, column % N);
         gameBoard[i] = column % N;
         column /= N;
     }
 
-    __syncthreads();
-
     if (boardIsValid(gameBoard, N)) {
-        int index = atomicAdd(d_num_solutions, 1);
+        const int index = atomicAdd(d_num_solutions, 1);
         for (int i = 0; i < N; i++)
             d_solutions[N * index + i] = gameBoard[i] + 1; //"+1" so that we can tell later which indexes of "d_solutions" are empty using 0
-        //printf("%d\n", d_permutations[index][0]);
     }
 
     __syncthreads();
@@ -96,7 +71,7 @@ void calculateSolutions(const int N, std::vector<std::vector<int>>* solutions, i
     int* d_solutions = nullptr;
     int* d_num_solutions = nullptr;
 
-    int O = pow(N, N);
+    const long long int O = powl(N, N);
 
     size_t solutions_mem = pow(N, 5) * sizeof(int*); // N^5 is an estimation of the amount of solutions for size N (^5 because N_MAX^4 (12^4) is enough to hold all the solutions for a 12x12 board and to store N columns for that board that would make it N^5)
     cudaMalloc((void**)&d_solutions, solutions_mem);
@@ -104,8 +79,17 @@ void calculateSolutions(const int N, std::vector<std::vector<int>>* solutions, i
 
     cudaMemcpy(d_num_solutions, h_num_solutions, sizeof(int), cudaMemcpyHostToDevice);
     
-    getPermutations<<<(O + 512 - 1) / 512, 512>>>(N, O, d_solutions, d_num_solutions);
-    cudaDeviceSynchronize();
+    int offsets = 1; //initialise as 1 so that the kernel is executed at least once
+    if (O > N_THREADS)
+        offsets = std::ceil(O / N_THREADS);
+
+    dim3 block = { BLOCK_X, BLOCK_Y, BLOCK_Z };
+    dim3 grid = { GRID_X / BLOCK_X, GRID_Y / BLOCK_Y, GRID_Z / BLOCK_Z };
+    for (long long int i = 0; i < offsets; i++) {
+        getPermutations<<<grid, block>>>(N, O, (long long int)(N_THREADS * i), d_solutions, d_num_solutions);
+        //if (N >= 10) printf("%d, %d, %lld\n", offsets, i, (long long int)(N_THREADS * i));
+        cudaDeviceSynchronize();
+    }
 
     cudaMemcpy(h_num_solutions, d_num_solutions, sizeof(int), cudaMemcpyDeviceToHost);
     cudaFree(d_num_solutions);
@@ -159,36 +143,10 @@ void calculateAllSolutions(const int N, const bool print)
     }
 }
 
-__device__ int getGlobalIdx_3D_3D() {
-    int blockId = blockIdx.x + blockIdx.y * gridDim.x
-        + gridDim.x * gridDim.y * blockIdx.z;
-    int threadId = blockId * (blockDim.x * blockDim.y * blockDim.z)
-        + (threadIdx.z * (blockDim.x * blockDim.y))
-        + (threadIdx.y * blockDim.x) + threadIdx.x;
-    return threadId;
-}
-
-__global__ void print_dims() {
-    printf("%d t=(%d, %d, %d) b=(%d, %d, %d) bd=(%d, %d, %d) gd(%d, %d, %d)\n", getGlobalIdx_3D_3D(), threadIdx.x, threadIdx.y, threadIdx.z, blockIdx.x, blockIdx.y, blockIdx.z, blockDim.x, blockDim.y, blockDim.z, gridDim.x, gridDim.y, gridDim.z);
-}
-
 int main(int argc, char** argv)
 {
     //gpuErrchk(cudaSetDevice(0));
 
     for (int N = 4; N <= N_MAX; ++N)
-        calculateAllSolutions(N, true);
-    
-    /* the following code is from an attempted 3D-3D GPU implementation, but I cannot find a way to calculate the total number of threads */
-    //double n = std::ceil(pow(N_MAX, N_MAX) / 6);
-    //dim3 block = { n, n, n };
-    //dim3 grid = { n, n, n };
-    //printf("%lf", n);
-
-    /*cudaDeviceProp props;
-    cudaGetDeviceProperties(&props, 0);
-    printf("%d", getSPcores(props));
-
-    print_dims<<<grid, block>>>();
-    cudaDeviceSynchronize();*/
+        calculateAllSolutions(N, false);
 }
