@@ -15,7 +15,7 @@
 
 #include "gpuErrchk.h"
 
-#define N_MAX 12
+#define N_MAX 12 //max board N*N; this is the max board's dimensions' value to evaluate, so the program will evaluate solutions to each N*N board up to this value (i.e. 4 <= N <= N_MAX)
 
 #define GRID_X 1024
 #define GRID_Y 14
