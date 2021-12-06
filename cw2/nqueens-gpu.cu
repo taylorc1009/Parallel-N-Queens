@@ -71,7 +71,7 @@ void initialiseDevice(const int N, std::vector<std::vector<int>>* solutions, int
 
     const long long int O = powl(N, N);
 
-    size_t solutions_mem = pow(N, 5) * sizeof(int*); // N^5 is an estimation of the amount of solutions for size N (^5 because N_MAX^4 (12^4) is enough to hold all the solutions for a 12x12 board and to store N columns for that board that would make it N^5)
+    size_t solutions_mem = pow(N, 5) * sizeof(int*); //N^5 is an estimation of the amount of solutions for size N (^5 because N_MAX^4 (12^4) is enough to hold all the solutions for a 12x12 board and to store N columns for that board that would make it N^5)
     cudaMalloc((void**)&d_solutions, solutions_mem);
     cudaMalloc((void**)&d_num_solutions, sizeof(int));
 
@@ -85,7 +85,6 @@ void initialiseDevice(const int N, std::vector<std::vector<int>>* solutions, int
     dim3 grid = { GRID_X / BLOCK_X, GRID_Y / BLOCK_Y, GRID_Z / BLOCK_Z };
     for (long long int i = 0; i < id_offsets; i++) {
         permutationGenAndEval<<<grid, block>>>(N, O, (long long int)(N_THREADS * i), d_solutions, d_num_solutions);
-        //if (N >= 10) printf("%d, %d, %lld\n", offsets, i, (long long int)(N_THREADS * i));
         cudaDeviceSynchronize();
     }
 
@@ -112,14 +111,14 @@ void calculateAllSolutions(const int N, const bool print)
 {
     std::vector<std::vector<int>> solutions = std::vector<std::vector<int>>();
     int num_solutions = 0;
+
+    //time the entire device uptime instead of only the permutations generation in order to account for the device memory management time as well
     auto start = std::chrono::system_clock::now();
-
     initialiseDevice(N, &solutions, &num_solutions);
-
     auto stop = std::chrono::system_clock::now();
+
     auto time_elapsed = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
     std::cout << "N=" << N << " time elapsed: " << time_elapsed.count() / 1000000.0 << "s\n";
-
     printf("N=%d, solutions=%d\n\n", N, num_solutions);
 
     if (print)
