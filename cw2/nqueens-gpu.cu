@@ -17,9 +17,11 @@
 
 #define N_MAX 12 //max board N*N; this is the max board's dimensions' value to evaluate, so the program will evaluate solutions to each N*N board up to this value (i.e. 4 <= N <= N_MAX)
 
+////////////
+//if the program is weilding incorrect results then these constants may need to be modified to match your GPU specification
+
 #define TPB 512 //this constant is used to allocate 2D GPU "Threads Per Block" (if you'd like to compare it to the current 3D-3D implementation)
 
-//if the program is weilding incorrect results then these constants may need to be modified to match your GPU specification
 #define GRID_X 1024
 #define GRID_Y 14
 #define GRID_Z 2
@@ -27,6 +29,7 @@
 #define BLOCK_Y 14
 #define BLOCK_Z 2
 #define N_THREADS (const long long int)(GRID_X * GRID_Y * GRID_Z)
+////////////
 
 __device__ inline int getGlobalIdx_3D_3D() {
     int blockId = blockIdx.x + blockIdx.y * gridDim.x
