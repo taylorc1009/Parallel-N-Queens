@@ -50,7 +50,7 @@ void calculateSolutions(int N, std::vector<std::vector<int>>& solutions)
     int num_solutions = 0;*/
 
 /* use this commented out preprocessing argument when using the parallelized "boardIsValidSoFar" solution */
-#pragma omp parallel for num_threads(std::thread::hardware_concurrency()) schedule(dynamic) // dynamic scheduling is best as we don't know whether a permutation is going to be valid or not and, therefore, utilise the "boardIsValid" check during task time
+#pragma omp parallel for num_threads(std::thread::hardware_concurrency()) schedule(dynamic) // dynamic scheduling is best as we don't know whether a permutation is going to be valid or not and, therefore, utilise the full "boardIsValidSoFar" check during task time
     for (int i = 0; i < O; i++) {
 
         bool valid = true;
