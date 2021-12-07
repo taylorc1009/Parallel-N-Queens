@@ -40,16 +40,60 @@ __device__ inline int getGlobalIdx_3D_3D() {
     return threadId;
 }
 
+/* use this kernel for an integer-based "gameBoard" gameboard implementation 
+__device__ bool boardIsValidSoFar(const int lastPlacedRow, const long long int gameBoard, const int N, const int reduction)
+{
+    int lastPlacedColumn = gameBoard % reduction;
+
+    for (int row = 0; row < lastPlacedRow; ++row)
+    {
+        int column = (gameBoard / (long long int)pow(reduction, (lastPlacedRow) - row)) % reduction;
+        
+        if (column == lastPlacedColumn)
+            return false;
+        const auto col1 = lastPlacedColumn - (lastPlacedRow - row);
+        const auto col2 = lastPlacedColumn + (lastPlacedRow - row);
+        if (column == col1 || column == col2)
+            return false;
+    }
+    return true;
+}
+
+__global__ void permutationGenAndEval(const int N, const long long int O, const long long int offset, int* d_solutions, int* d_num_solutions, const int reduction) {
+    //long long int column = (long long int)getGlobalIdx_3D_3D() + offset; //use this line for the 3D-3D implementation
+    long long int column = (long long int)(threadIdx.x + blockIdx.x * blockDim.x) + offset; //use this line for the 2D implementation
+    if (column >= O)
+        return;
+
+    bool valid = true;
+    long long int gameBoard = 0;
+    for (int i = 0; i < N; i++) {
+        gameBoard *= reduction;
+        gameBoard += column % N;
+
+        if (!boardIsValidSoFar(i, gameBoard, N, reduction)) {
+            valid = false;
+            break;
+        }
+
+        column /= N;
+    }
+
+    if (valid) { //I tried combining this block of code with the "if" in the "for" loop above it, but this ended up being slower by about 4% (on average)
+        const int index = atomicAdd(d_num_solutions, 1);
+        d_solutions[index] = gameBoard;
+    }
+}*/
+
+/* use this kernel for an array-based "gameBoard" implementation */
 __device__ bool boardIsValidSoFar(int lastPlacedRow, const int* gameBoard, const int N)
 {
     int lastPlacedColumn = gameBoard[lastPlacedRow];
 
-    // Check against other queens
     for (int row = 0; row < lastPlacedRow; ++row)
     {
-        if (gameBoard[row] == lastPlacedColumn) // same column, fail!
+        if (gameBoard[row] == lastPlacedColumn)
             return false;
-        // check the 2 diagonals
         const auto col1 = lastPlacedColumn - (lastPlacedRow - row);
         const auto col2 = lastPlacedColumn + (lastPlacedRow - row);
         if (gameBoard[row] == col1 || gameBoard[row] == col2)
@@ -68,7 +112,7 @@ __global__ void permutationGenAndEval(const int N, const long long int O, const 
     int gameBoard[N_MAX];
     for (int i = 0; i < N; i++) {
         gameBoard[i] = column % N;
-        
+
         if (!boardIsValidSoFar(i, gameBoard, N)) {
             valid = false;
             break;
@@ -112,9 +156,16 @@ void initialiseDevice(const int N, std::vector<std::vector<int>>* solutions, int
     if (O > grid * block)
         id_offsets = std::ceil((double)O / (grid * block));
 
+    const int reduction = N >= 10 ? 100 : 10; //this variable is used for the integer-based "gameBoard" implementation
     for (long long int i = 0; i < id_offsets; i++) {
+        /* use either of these kernel invocations with the integer-based "gameBoard" implementation
+        //permutationGenAndEval<<<grid, block>>>(N, O, N_THREADS * i, d_solutions, d_num_solutions); //use this kernel invocation for the 3D-3D implementation
+        permutationGenAndEval<<<grid, block>>>(N, O, (long long int)grid * block * i, d_solutions, d_num_solutions); //use this kernel invocation for the 2D implementation*/
+
+        /* use either of these kernel invocations with the array-based "gameBoard" implmentation */
         //permutationGenAndEval<<<grid, block>>>(N, O, N_THREADS * i, d_solutions, d_num_solutions); //use this kernel invocation for the 3D-3D implementation
         permutationGenAndEval<<<grid, block>>>(N, O, (long long int)grid * block * i, d_solutions, d_num_solutions); //use this kernel invocation for the 2D implementation
+        
         cudaDeviceSynchronize();
     }
 
@@ -125,6 +176,19 @@ void initialiseDevice(const int N, std::vector<std::vector<int>>* solutions, int
     cudaMemcpy(h_solutions, d_solutions, solutions_mem, cudaMemcpyDeviceToHost);
     cudaFree(d_solutions);
 
+    /* use this for loop with the integer-based "gameBoard" implementation 
+    for (int i = 0; i < *h_num_solutions; i++) {
+        if (h_solutions[i] != NULL) {
+            std::vector<int> solution = std::vector<int>();
+            for (int j = 0; j < N; j++) {
+                solution.push_back((h_solutions[i] % reduction) - 1);
+                h_solutions[i] /= reduction;
+            }
+            solutions->push_back(solution);
+        }
+    }*/
+
+    /* use this for loop with the array-based "gameBoard" implementation */
     for (int i = 0; i < *h_num_solutions; i++) {
         if (h_solutions[N * i] != NULL) {
             std::vector<int> solution = std::vector<int>();
