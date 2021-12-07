@@ -104,14 +104,14 @@ void initialiseDevice(const int N, std::vector<std::vector<int>>* solutions, int
     dim3 grid = { GRID_X / BLOCK_X, GRID_Y / BLOCK_Y, GRID_Z / BLOCK_Z };*/
 
     /* use these two lines with the 2D kernel implementation */
-    long long int grid = (O + TPB - 1) / TPB;
+    long long int grid = TPB * 2;
     int block = TPB;
-    if (O > grid * block)
-        id_offsets = std::ceil((double)O / (grid * block));
+    if (O > grid)
+        id_offsets = std::ceil((double)O / grid);
 
     for (long long int i = 0; i < id_offsets; i++) {
         //permutationGenAndEval<<<grid, block>>>(N, O, N_THREADS * i, d_solutions, d_num_solutions); //use this kernel invocation for the 3D-3D implementation
-        permutationGenAndEval<<<grid, block>>>(N, O, (long long int)(grid * block) * i, d_solutions, d_num_solutions); //use this kernel invocation for the 2D implementation
+        permutationGenAndEval<<<grid, block>>>(N, O, (long long int)grid * i, d_solutions, d_num_solutions); //use this kernel invocation for the 2D implementation
         cudaDeviceSynchronize();
     }
 
