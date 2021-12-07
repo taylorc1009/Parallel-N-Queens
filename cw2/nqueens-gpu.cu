@@ -17,6 +17,8 @@
 
 #define N_MAX 12 //max board N*N; this is the max board's dimensions' value to evaluate, so the program will evaluate solutions to each N*N board up to this value (i.e. 4 <= N <= N_MAX)
 
+#define TPB 512 //this constant is used to allocate 2D GPU "Threads Per Block" (if you'd like to compare it to the current 3D-3D implementation)
+
 //if the program is weilding incorrect results then these constants may need to be modified to match your GPU specification
 #define GRID_X 1024
 #define GRID_Y 14
@@ -54,7 +56,8 @@ __device__ bool boardIsValidSoFar(int lastPlacedRow, const int* gameBoard, const
 }
 
 __global__ void permutationGenAndEval(const int N, const long long int O, const long long int offset, int* d_solutions, int* d_num_solutions) {
-    long long column = (long long int)getGlobalIdx_3D_3D() + offset;
+    //long long int column = (long long int)getGlobalIdx_3D_3D() + offset; //use this line for the 3D-3D implementation
+    long long int column = (long long int)(threadIdx.x + blockIdx.x * blockDim.x); //use this line for the 2D implementation
     if (column >= O)
         return;
 
@@ -93,14 +96,18 @@ void initialiseDevice(const int N, std::vector<std::vector<int>>* solutions, int
     cudaMemcpy(d_num_solutions, h_num_solutions, sizeof(int), cudaMemcpyHostToDevice);
     
     int id_offsets = 1; //initialise as 1 so that the kernel is executed at least once
-    if (O > N_THREADS)
+    
+    /*if (O > N_THREADS)
         id_offsets = std::ceil((double)O / N_THREADS); //calculate the amount of thread ID offsets needed (round up to account for the remainder offset)
+    dim3 block = {BLOCK_X, BLOCK_Y, BLOCK_Z};
+    dim3 grid = { GRID_X / BLOCK_X, GRID_Y / BLOCK_Y, GRID_Z / BLOCK_Z };*/
 
+    long long int grid = (O + TPB - 1) / TPB;
+    int block = TPB;
 
-    dim3 block = { BLOCK_X, BLOCK_Y, BLOCK_Z };
-    dim3 grid = { GRID_X / BLOCK_X, GRID_Y / BLOCK_Y, GRID_Z / BLOCK_Z };
     for (long long int i = 0; i < id_offsets; i++) {
-        permutationGenAndEval<<<grid, block>>>(N, O, N_THREADS * i, d_solutions, d_num_solutions);
+        //permutationGenAndEval<<<grid, block>>>(N, O, N_THREADS * i, d_solutions, d_num_solutions); //use this kernel invocation for the 3D-3D implementation
+        permutationGenAndEval<<<grid, block>>>(N, O, NULL, d_solutions, d_num_solutions); //use this kernel invocation for the 2D implementation
         cudaDeviceSynchronize();
     }
 
