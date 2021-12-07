@@ -35,7 +35,7 @@ __device__ inline int getGlobalIdx_3D_3D() {
     return threadId;
 }
 
-__device__ inline bool boardIsValidSoFar(int lastPlacedRow, const int* gameBoard, const int N)
+__device__ bool boardIsValidSoFar(int lastPlacedRow, const int* gameBoard, const int N)
 {
     int lastPlacedColumn = gameBoard[lastPlacedRow];
 
