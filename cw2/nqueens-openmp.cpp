@@ -19,7 +19,7 @@ inline bool boardIsValidSoFar(int lastPlacedRow, const int* gameBoard, const int
     /* use this boolean when the below for loop is a Parallel For */
     volatile bool valid = true;
 
-#pragma omp parallel for num_threads(std::thread::hardware_concurrency()) schedule(static) shared(valid)
+#pragma omp parallel for num_threads(std::thread::hardware_concurrency()) schedule(dynamic) shared(valid)
     for (int row = 0; row < lastPlacedRow; ++row)
     {
         /* use this condition when this for is parallel*/
