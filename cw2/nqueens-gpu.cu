@@ -97,21 +97,21 @@ void initialiseDevice(const int N, std::vector<std::vector<int>>* solutions, int
     
     int id_offsets = 1; //initialise as 1 so that the kernel is executed at least once
     
-    /* use the following four lines with the 3D-3D implementation
+    /* use the following four lines with the 3D-3D implementation 
     if (O > N_THREADS)
         id_offsets = std::ceil((double)O / N_THREADS); //calculate the amount of thread ID offsets needed (round up to account for the remainder offset)
     dim3 block = {BLOCK_X, BLOCK_Y, BLOCK_Z};
     dim3 grid = { GRID_X / BLOCK_X, GRID_Y / BLOCK_Y, GRID_Z / BLOCK_Z };*/
 
     /* use these two lines with the 2D kernel implementation */
-    long long int grid = TPB * 2;
+    int grid = TPB * 2;
     int block = TPB;
-    if (O > grid)
-        id_offsets = std::ceil((double)O / grid);
+    if (O > grid * block)
+        id_offsets = std::ceil((double)O / (grid * block));
 
     for (long long int i = 0; i < id_offsets; i++) {
         //permutationGenAndEval<<<grid, block>>>(N, O, N_THREADS * i, d_solutions, d_num_solutions); //use this kernel invocation for the 3D-3D implementation
-        permutationGenAndEval<<<grid, block>>>(N, O, (long long int)grid * i, d_solutions, d_num_solutions); //use this kernel invocation for the 2D implementation
+        permutationGenAndEval<<<grid, block>>>(N, O, (long long int)grid * block * i, d_solutions, d_num_solutions); //use this kernel invocation for the 2D implementation
         cudaDeviceSynchronize();
     }
 
