@@ -124,7 +124,7 @@ __global__ void permutationGenAndEval(const int N, const long long int O, const 
     if (valid) { //I tried combining this block of code with the "if" in the "for" loop above it, but this ended up being slower by about 4% (on average)
         const int index = atomicAdd(d_num_solutions, 1);
         for (int i = 0; i < N; i++)
-            d_solutions[N * index + i] = gameBoard[i] + 1; //"+1" so that we can tell later which indexes of "d_solutions" are empty using 0
+            d_solutions[N * index + i] = gameBoard[i]; //"+1" so that we can tell later which indexes of "d_solutions" are empty using 0
     }
 }
 
@@ -178,24 +178,20 @@ void initialiseDevice(const int N, std::vector<std::vector<int>>* solutions, int
 
     /* use this for loop with the integer-based "gameBoard" implementation 
     for (int i = 0; i < *h_num_solutions; i++) {
-        if (h_solutions[i] != NULL) {
-            std::vector<int> solution = std::vector<int>();
-            for (int j = 0; j < N; j++) {
-                solution.push_back((h_solutions[i] % reduction) - 1);
-                h_solutions[i] /= reduction;
-            }
-            solutions->push_back(solution);
+        std::vector<int> solution = std::vector<int>();
+        for (int j = 0; j < N; j++) {
+            solution.push_back((h_solutions[i] % reduction));
+            h_solutions[i] /= reduction;
         }
+        solutions->push_back(solution);
     }*/
 
     /* use this for loop with the array-based "gameBoard" implementation */
     for (int i = 0; i < *h_num_solutions; i++) {
-        if (h_solutions[N * i] != NULL) {
-            std::vector<int> solution = std::vector<int>();
-            for (int j = 0; j < N; j++)
-                solution.push_back(h_solutions[N * i + j] - 1); //"-1" to remove the addition made in the kernel to identify a solution is this array
-            solutions->push_back(solution);
-        }
+        std::vector<int> solution = std::vector<int>();
+        for (int j = 0; j < N; j++)
+            solution.push_back(h_solutions[N * i + j]);
+        solutions->push_back(solution);
     }
 
     free(h_solutions);
