@@ -77,9 +77,9 @@ void calculateSolutions(int N, std::vector<std::vector<int>>& solutions)
             //solutions.push_back(gameBoard); // if "gameBoard" is a vector, use this line*/
 
             /* make sure to use the following three lines when using the dynamically allocated "int** solutions_array" */
-            num_solutions++;
             for (int j = 0; j < N; j++)
-                solutions_array[N * (num_solutions - 1) + j] = gameBoard[j];
+                solutions_array[N * num_solutions + j] = gameBoard[j];
+            num_solutions++;
         }
     }
 
