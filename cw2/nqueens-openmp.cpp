@@ -76,10 +76,10 @@ void calculateSolutions(int N, std::vector<std::vector<int>>& solutions)
             /* make sure to use the following three lines when using the dynamically allocated "int** solutions_array"
             num_solutions++;
             solutions_array = (int**)realloc(solutions_array, sizeof(int*) * num_solutions);
-            solutions_array[num_solutions - 1] = gameBoard;* /
+            solutions_array[num_solutions - 1] = gameBoard;*/
 
-        /* make sure to use this "free()" when using the dynamically allocated "int* gameBoard" but not when using the "int** solutions_array"
-        free(gameBoard);*/
+        /* make sure to use this "free()" when using the dynamically allocated "int* gameBoard" but not when using the "int** solutions_array" */
+        free(gameBoard);
     }
 
     /* make sure to use the following four lines when using the dynamically allocated "int** solutions_array"
