@@ -10,6 +10,8 @@
 #include <omp.h>
 #include <algorithm>
 
+#define N_MAX 12
+
 /* use this commented out function declaration when using "gameBoard" as a vector
 inline bool boardIsValidSoFar(int lastPlacedRow, const std::vector<int>& gameBoard, const int N)*/
 inline bool boardIsValidSoFar(int lastPlacedRow, const int* gameBoard, const int N)
@@ -44,17 +46,16 @@ inline bool boardIsValidSoFar(int lastPlacedRow, const int* gameBoard, const int
 void calculateSolutions(int N, std::vector<std::vector<int>>& solutions)
 {
     int O = pow(N, N);
-    
-    /* the following two lines are for an array-based solution, alternative to the "solutions" vector, as it may increase OpenMP's performance
-    int** solutions_array = nullptr;
-    int num_solutions = 0;*/
 
-/* use this commented out preprocessing argument when using the parallelized "boardIsValidSoFar" solution */
+    /* the following two lines are for an array-based solution, alternative to the "solutions" vector, as it may increase OpenMP's performance
+    int* solutions_array = (int*)malloc(pow(N, 5) * sizeof(int)); //N^5 is an estimation of the amount of solutions for size N (^5 because N_MAX^4 (12^4) is enough to hold all the solutions for a 12x12 board and to store N columns for that board that would make it N^5)
+    std::atomic<int> num_solutions = 0;*/
+
 #pragma omp parallel for num_threads(std::thread::hardware_concurrency()) schedule(dynamic) // dynamic scheduling is best as we don't know whether a permutation is going to be valid or not and, therefore, utilise the full "boardIsValidSoFar" check during task time
     for (int i = 0; i < O; i++) {
 
         bool valid = true;
-        int* gameBoard = (int*)malloc(sizeof(int) * N); // OpenMP's performance improves drastically when using an array instead of a vector
+        int gameBoard[N_MAX]; // OpenMP's performance improves drastically when using an array instead of a vector
         //std::vector<int> gameBoard(N, 0); // vector implementation of "gameBoard" - always runs slower than an array
 
         int column = i;
@@ -68,24 +69,25 @@ void calculateSolutions(int N, std::vector<std::vector<int>>& solutions)
 
             column /= N;
         }
-        if (valid)
+
+        if (valid) {
 #pragma omp critical // when using a solution other than the dynamically allocated "int** solutions_array", use this line and one of the two below
             solutions.push_back(std::vector<int>(gameBoard, gameBoard + sizeof gameBoard / sizeof gameBoard[0])); // if "gameBoard" is an array, use this line
             //solutions.push_back(gameBoard); // if "gameBoard" is a vector, use this line
 
             /* make sure to use the following three lines when using the dynamically allocated "int** solutions_array"
             num_solutions++;
-            solutions_array = (int**)realloc(solutions_array, sizeof(int*) * num_solutions);
-            solutions_array[num_solutions - 1] = gameBoard;*/
-
-        /* make sure to use this "free()" when using the dynamically allocated "int* gameBoard" but not when using the "int** solutions_array" */
-        free(gameBoard);
+            for (int j = 0; j < N; j++)
+                solutions_array[N * (num_solutions - 1) + j] = gameBoard[j];*/
+        }
     }
 
     /* make sure to use the following four lines when using the dynamically allocated "int** solutions_array"
     for (int i = 0; i < num_solutions; i++) {
-        solutions.push_back(std::vector<int>(solutions_array[i], solutions_array[i] + sizeof solutions_array[i] / sizeof solutions_array[i][0]));
-        free(solutions_array[i]);
+        std::vector<int> solution = std::vector<int>();
+        for (int j = 0; j < N; j++)
+            solution.push_back(solutions_array[N * i + j]);
+        solutions.push_back(solution);
     }
     free(solutions_array);*/
 }
@@ -125,6 +127,6 @@ void calculateAllSolutions(int N, bool print)
 
 int main(int argc, char** argv)
 {
-    for (int N = 4; N < 13; ++N)
+    for (int N = 4; N <= N_MAX; ++N)
         calculateAllSolutions(N, false);
 }
