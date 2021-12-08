@@ -156,7 +156,9 @@ void initialiseDevice(const int N, std::vector<std::vector<int>>* solutions, int
     if (O > grid * block)
         id_offsets = std::ceil((double)O / (grid * block));
 
-    const int reduction = N >= 10 ? 100 : 10; //this variable is used for the integer-based "gameBoard" implementation
+    /* this variable is used for the integer - based "gameBoard" implementation 
+    const int reduction = N >= 10 ? 100 : 10;*/
+
     for (long long int i = 0; i < id_offsets; i++) {
         /* use either of these kernel invocations with the integer-based "gameBoard" implementation
         //permutationGenAndEval<<<grid, block>>>(N, O, N_THREADS * i, d_solutions, d_num_solutions); //use this kernel invocation for the 3D-3D implementation
