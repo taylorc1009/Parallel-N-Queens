@@ -21,7 +21,7 @@ inline bool boardIsValidSoFar(int lastPlacedRow, const int* gameBoard, const int
     /* use this boolean when the below for loop is a Parallel For
     volatile bool valid = true;*/
 
-//#pragma omp parallel for num_threads(std::thread::hardware_concurrency()) schedule(dynamic) shared(valid)
+//#pragma omp parallel for num_threads(std::thread::hardware_concurrency()) schedule(guided) shared(valid)
     for (int row = 0; row < lastPlacedRow; ++row)
     {
         /* use this condition when this for is parallel
@@ -51,7 +51,7 @@ void calculateSolutions(int N, std::vector<std::vector<int>>& solutions)
     int* solutions_array = (int*)malloc(pow(N, 5) * sizeof(int)); //N^5 is an estimation of the amount of solutions for size N (^5 because N_MAX^4 (12^4) is enough to hold all the solutions for a 12x12 board and to store N columns for that board that would make it N^5)
     std::atomic<int> num_solutions = 0;
 
-#pragma omp parallel for num_threads(std::thread::hardware_concurrency()) schedule(dynamic) // dynamic scheduling is best as we don't know whether a permutation is going to be valid or not and, therefore, utilise the full "boardIsValidSoFar" check during task time
+#pragma omp parallel for num_threads(std::thread::hardware_concurrency()) schedule(guided) // guided scheduling is best as we don't know whether a permutation is going to be valid or not and, therefore, utilise the full "boardIsValidSoFar" check during task time
     for (long long int i = 0; i < O; i++) {
 
         bool valid = true;
