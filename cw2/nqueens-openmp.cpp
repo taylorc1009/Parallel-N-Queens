@@ -18,47 +18,47 @@ inline bool boardIsValidSoFar(int lastPlacedRow, const int* gameBoard, const int
 {
     int lastPlacedColumn = gameBoard[lastPlacedRow];
 
-    /* use this boolean when the below for loop is a Parallel For */
-    volatile bool valid = true;
+    /* use this boolean when the below for loop is a Parallel For
+    volatile bool valid = true;*/
 
-#pragma omp parallel for num_threads(std::thread::hardware_concurrency()) schedule(dynamic) shared(valid)
+//#pragma omp parallel for num_threads(std::thread::hardware_concurrency()) schedule(dynamic) shared(valid)
     for (int row = 0; row < lastPlacedRow; ++row)
     {
-        /* use this condition when this for is parallel*/
+        /* use this condition when this for is parallel
         if (!valid)
-            continue;
+            continue;*/
 
         if (gameBoard[row] == lastPlacedColumn) // same column, fail!
-            /* use this, and the following, commented out returns when this for is not parallel 
-            return false;*/
-            valid = false;
+            /* use this, and the following, returns when this for is not parallel (other wise use the following uses of the "valid" variable */
+            return false;
+            //valid = false;
         // check the 2 diagonals
         const auto col1 = lastPlacedColumn - (lastPlacedRow - row);
         const auto col2 = lastPlacedColumn + (lastPlacedRow - row);
         if (gameBoard[row] == col1 || gameBoard[row] == col2)
-            //return false;
-            valid = false;
+            return false;
+            //valid = false;
     }
-    //return false;
-    return valid;
+    return true;
+    //return valid;
 }
 
 void calculateSolutions(int N, std::vector<std::vector<int>>& solutions)
 {
-    int O = pow(N, N);
+    const long long int O = powl(N, N);
 
     /* the following two lines are for an array-based solution, alternative to the "solutions" vector */
     int* solutions_array = (int*)malloc(pow(N, 5) * sizeof(int)); //N^5 is an estimation of the amount of solutions for size N (^5 because N_MAX^4 (12^4) is enough to hold all the solutions for a 12x12 board and to store N columns for that board that would make it N^5)
     std::atomic<int> num_solutions = 0;
 
 #pragma omp parallel for num_threads(std::thread::hardware_concurrency()) schedule(dynamic) // dynamic scheduling is best as we don't know whether a permutation is going to be valid or not and, therefore, utilise the full "boardIsValidSoFar" check during task time
-    for (int i = 0; i < O; i++) {
+    for (long long int i = 0; i < O; i++) {
 
         bool valid = true;
         int gameBoard[N_MAX]; // OpenMP's performance improves drastically when using an array instead of a vector
         //std::vector<int> gameBoard(N, 0); // vector implementation of "gameBoard" - always runs slower than an array
 
-        int column = i;
+        long long int column = i;
         for (int j = 0; j < N; j++) {
             gameBoard[j] = column % N;
 
