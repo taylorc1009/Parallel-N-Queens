@@ -161,8 +161,8 @@ void initialiseDevice(const int N, std::vector<std::vector<int>>* solutions, int
 
     for (long long int i = 0; i < id_offsets; i++) {
         /* use either of these kernel invocations with the integer-based "gameBoard" implementation
-        //permutationGenAndEval<<<grid, block>>>(N, O, N_THREADS * i, d_solutions, d_num_solutions); //use this kernel invocation for the 3D-3D implementation
-        permutationGenAndEval<<<grid, block>>>(N, O, (long long int)grid * block * i, d_solutions, d_num_solutions); //use this kernel invocation for the 2D implementation*/
+        //permutationGenAndEval<<<grid, block>>>(N, O, N_THREADS * i, d_solutions, d_num_solutions, reduction); //use this kernel invocation for the 3D-3D implementation
+        permutationGenAndEval<<<grid, block>>>(N, O, (long long int)grid * block * i, d_solutions, d_num_solutions, reduction);*/ //use this kernel invocation for the 2D implementation
 
         /* use either of these kernel invocations with the array-based "gameBoard" implmentation */
         //permutationGenAndEval<<<grid, block>>>(N, O, N_THREADS * i, d_solutions, d_num_solutions); //use this kernel invocation for the 3D-3D implementation
