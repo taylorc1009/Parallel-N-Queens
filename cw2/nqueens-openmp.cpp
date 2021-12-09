@@ -29,7 +29,7 @@ inline bool boardIsValidSoFar(int lastPlacedRow, const int* gameBoard, const int
             continue;*/
 
         if (gameBoard[row] == lastPlacedColumn) // same column, fail!
-            /* use this, and the following, returns when this for is not parallel (other wise use the following uses of the "valid" variable */
+            /* use this, and the following, returns when this for is not parallel (other wise use the following uses of the "valid" variable) */
             return false;
             //valid = false;
         // check the 2 diagonals
