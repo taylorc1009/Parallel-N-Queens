@@ -31,7 +31,7 @@
 #define N_THREADS (const long long int)(GRID_X * GRID_Y * GRID_Z)
 ////////////
 
-__device__ inline int getGlobalIdx_3D_3D() {
+__device__ inline int getGlobalIdx_3D_3D() { //this function is used to get the ID of a thread in a 3D-3D kernel
     int blockId = blockIdx.x + blockIdx.y * gridDim.x
         + gridDim.x * gridDim.y * blockIdx.z;
     int threadId = blockId * (blockDim.x * blockDim.y * blockDim.z)
