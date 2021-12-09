@@ -73,8 +73,8 @@ void calculateSolutions(int N, std::vector<std::vector<int>>& solutions)
         if (valid) {
 /* when using a solution other than the dynamically allocated "int* solutions_array", use two of the following three lines
 #pragma omp critical 
-            solutions.push_back(std::vector<int>(gameBoard, gameBoard + sizeof gameBoard / sizeof gameBoard[0])); // if "gameBoard" is an array, use this line
-            //solutions.push_back(gameBoard); // if "gameBoard" is a vector, use this line*/
+            solutions.push_back(std::vector<int>(gameBoard, gameBoard + sizeof gameBoard / sizeof gameBoard[0])); // if not using the "solutions_array" and "gameBoard" is an array, use this line
+            //solutions.push_back(gameBoard); // if not using the "solutions_array" and "gameBoard" is a vector, use this line*/
 
             /* make sure to use the following three lines when using the dynamically allocated "int** solutions_array" */
             for (int j = 0; j < N; j++)
