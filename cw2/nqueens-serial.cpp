@@ -105,8 +105,19 @@ void calculateAllSolutions(int N, bool print)
 {
     std::vector<std::vector<int>> solutions;
     std::vector<int> gameBoard(N, 0);
+
+    auto start = std::chrono::system_clock::now();
     calculateSolutionsRecursive(0, gameBoard, N, solutions);
-    printf("N=%d, solutions=%d\n", N, int(solutions.size()));
+    auto stop = std::chrono::system_clock::now();
+
+    auto time_elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+    #ifdef _WIN32
+    std::cout << "N=" << N << " time elapsed: " << time_elapsed.count() / 1000.0 << "\xE6s\n";
+    #else
+    std::cout << "N=" << N << " time elapsed: " << time_elapsed.count() / 1000.0 << "\xC2\xB5s\n";
+    #endif
+
+    printf("N=%d, solutions=%d\n\n", N, int(solutions.size()));
     
     if (print)
     {
