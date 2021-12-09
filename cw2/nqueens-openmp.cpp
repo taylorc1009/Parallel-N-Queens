@@ -55,7 +55,7 @@ void calculateSolutions(int N, std::vector<std::vector<int>>& solutions)
     for (long long int i = 0; i < O; i++) {
 
         bool valid = true;
-        int gameBoard[N_MAX]; // OpenMP's performance improves drastically when using an array instead of a vector
+        int gameBoard[N_MAX]; // OpenMP's performance improves drastically when using an array instead of a vector as the compiler will have it stored in the registers
         //std::vector<int> gameBoard(N, 0); // vector implementation of "gameBoard" - always runs slower than an array
 
         long long int column = i;
