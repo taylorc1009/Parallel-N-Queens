@@ -124,7 +124,7 @@ __global__ void permutationGenAndEval(const int N, const long long int O, const 
     if (valid) { //I tried combining this block of code with the "if" in the "for" loop above it, but this ended up being slower by about 4% (on average)
         const int index = atomicAdd(d_num_solutions, 1);
         for (int i = 0; i < N; i++)
-            d_solutions[N * index + i] = gameBoard[i]; //"+1" so that we can tell later which indexes of "d_solutions" are empty using 0
+            d_solutions[N * index + i] = gameBoard[i];
     }
 }
 
