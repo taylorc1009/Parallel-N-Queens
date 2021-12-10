@@ -108,24 +108,19 @@ __global__ void permutationGenAndEval(const int N, const long long int O, const 
     if (column >= O)
         return;
 
-    bool valid = true;
     int gameBoard[N_MAX];
     for (int i = 0; i < N; i++) {
         gameBoard[i] = column % N;
 
-        if (!boardIsValidSoFar(i, gameBoard, N)) {
-            valid = false;
-            break;
-        }
+        if (!boardIsValidSoFar(i, gameBoard, N))
+            return;
 
         column /= N;
     }
 
-    if (valid) { //I tried combining this block of code with the "if" in the "for" loop above it, but this ended up being slower by about 4% (on average)
-        const int index = atomicAdd(d_num_solutions, 1);
-        for (int i = 0; i < N; i++)
-            d_solutions[N * index + i] = gameBoard[i];
-    }
+    const int index = atomicAdd(d_num_solutions, 1);
+    for (int i = 0; i < N; i++)
+        d_solutions[N * index + i] = gameBoard[i];
 }
 
 void initialiseDevice(const int N, std::vector<std::vector<int>>* solutions, int* h_num_solutions)

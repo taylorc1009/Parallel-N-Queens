@@ -53,7 +53,6 @@ void calculateSolutions(int N, std::vector<std::vector<int>>& solutions)
 
 #pragma omp parallel for num_threads(std::thread::hardware_concurrency()) schedule(static) // I thought dynamic scheduling would be best as we don't know whether a permutation is going to be valid or not and, therefore, utilise the full "boardIsValidSoFar" check during task time, but static is much faster
     for (long long int i = 0; i < O; i++) {
-
         bool valid = true;
         int gameBoard[N_MAX]; // OpenMP's performance improves drastically when using an array instead of a vector as the compiler will have it stored in the registers
         //std::vector<int> gameBoard(N, 0); // vector implementation of "gameBoard" - always runs slower than an array
