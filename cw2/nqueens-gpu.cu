@@ -65,24 +65,19 @@ __global__ void permutationGenAndEval(const int N, const long long int O, const 
     if (column >= O)
         return;
 
-    bool valid = true;
     long long int gameBoard = 0;
     for (int i = 0; i < N; i++) {
         gameBoard *= reduction;
         gameBoard += column % N;
 
-        if (!boardIsValidSoFar(i, gameBoard, N, reduction)) {
-            valid = false;
-            break;
-        }
+        if (!boardIsValidSoFar(i, gameBoard, N, reduction))
+            return;
 
         column /= N;
     }
 
-    if (valid) { //I tried combining this block of code with the "if" in the "for" loop above it, but this ended up being slower by about 4% (on average)
-        const int index = atomicAdd(d_num_solutions, 1);
-        d_solutions[index] = gameBoard;
-    }
+    const int index = atomicAdd(d_num_solutions, 1);
+    d_solutions[index] = gameBoard;
 }*/
 
 /* use this kernel for an array-based "gameBoard" implementation */
